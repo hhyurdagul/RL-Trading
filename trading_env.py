@@ -83,6 +83,18 @@ class TradingEnvironment(gym.Env):
         # Initialize reward
         reward = 0
 
+        if self.position == -1 and self.current_price >= self.stop_loss_price:
+            position_value = self._calculate_position_value()
+            self.balance += position_value
+            reward += position_value
+            self.position = 0
+
+        if self.position == 1 and self.current_price <= self.stop_loss_price:
+            position_value = self._calculate_position_value()
+            self.balance += position_value
+            reward += position_value
+            self.position = 0
+
         # Apply holding cost if position is open
         # If the current day is changed
         if self.position != 0 and self.df.index[self.current_step].day != self.position_time.day:
@@ -98,18 +110,15 @@ class TradingEnvironment(gym.Env):
                 position_value = self._calculate_position_value()
                 self.balance += position_value
                 reward += position_value
-                self.trades.append(
-                    ("Close", self.current_step, self.current_price, position_value)
-                )
                 self.position = 0
 
             # Open new short position if no position exists
             elif self.position == 0:
                 self.position = -1
                 self.entry_price = self.current_price
+                self.stop_loss_price = self.entry_price + 8
                 self.balance -= self.transaction_fee_cost
                 self.holding_ticks = 0
-                self.trades.append(("Sell", self.current_step, self.current_price, 0))
                 self.position_time = self.df.index[self.current_step]
 
         elif action == 2:  # Close current position (if any) and Buy
@@ -118,18 +127,15 @@ class TradingEnvironment(gym.Env):
                 position_value = self._calculate_position_value()
                 self.balance += position_value
                 reward += position_value
-                self.trades.append(
-                    ("Close", self.current_step, self.current_price, position_value)
-                )
                 self.position = 0
 
             # Open new long position if no position exists
             elif self.position == 0:
                 self.position = 1
                 self.entry_price = self.current_price
+                self.stop_loss_price = self.entry_price - 8
                 self.balance -= self.transaction_fee_cost
                 self.holding_ticks = 0
-                self.trades.append(("Buy", self.current_step, self.current_price, 0))
                 self.position_time = self.df.index[self.current_step]
 
         # Move to next step
@@ -165,13 +171,7 @@ class TradingEnvironment(gym.Env):
             reward,
             done,
             False,
-            {
-                "current_value": self.current_value,
-                "total_profit": self.total_profit,
-                "trades": self.trades,
-                "position": self.position,
-                "holding_days": self.holding_ticks,
-            }
+            {}
         )
 
     def render(self):

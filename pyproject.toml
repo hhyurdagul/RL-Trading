@@ -10,6 +10,7 @@ dependencies = [
     "matplotlib==3.7.1",
     "numpy==1.24.3",
     "pandas==2.0.2",
+    "sb3-contrib>=2.1.0",
     "scikit-learn==1.2.2",
     "stable-baselines3==2.1.0",
     "torch==2.0.1",
